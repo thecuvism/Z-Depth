@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ZERO Depth v5.73</title>
+<title>ZERO Depth v7.1</title>
 <style>
   :root{
     /* 레퍼런스 팔레트: Black / Prussian Blue #14213D / Orange #FCA311 / Alabaster #E5E5E5 / Brick Rust #C2C4C3 / White */
@@ -94,29 +94,18 @@
 /* ═══════ 상태 ═══════ */
 const KEY='soc-debt-weekly-v1';
 const CAT_DEF=[
-  {name:'카드', amount:0, subs:[
-    {name:'롯데카드', amount:11500000},
-    {name:'우리카드', amount:20000000},
-    {name:'신한카드', amount:19000000},
-    {name:'현대카드', amount:11500000},
+  {name:'신용카드', amount:0, subs:[
+    {name:'', amount:0},
   ]},
-  {name:'주택담보대출', amount:0, subs:[]},
-  {name:'사업대출', amount:0, subs:[]},
-  {name:'신용대출', amount:0, subs:[]},
+  {name:'사업대출', amount:0, subs:[
+    {name:'', amount:0},
+  ]},
 ];
-const REV_DEF=['공인교육','필름에뮬','인증서 발급','기타'];
-const DEF={annualRate:0.15, planMonthly:5844500, entries:[], debts:CAT_DEF, revCats:REV_DEF, syncToken:''};
-/* 상반기 실적 - 스마트스토어/통장 PDF를 상품별로 분류 집계
-   (공인교육=ICA 정규·얼리버드·기업교육, 필름에뮬=마스터클래스,
-    인증서 발급=CT301 인증, 기타=iPad·Drama Look·멤버스·소액) */
-const HIST_CAT={
- '2026-01':{'공인교육':15685000,'필름에뮬':18035100,'인증서 발급':2100000,'기타':480000},
- '2026-02':{'공인교육':18715000,'필름에뮬':1380000,'인증서 발급':300000,'기타':100000},
- '2026-03':{'공인교육':20025000},
- '2026-04':{'공인교육':9010000,'필름에뮬':4140000,'인증서 발급':100000,'기타':760000},
- '2026-05':{'공인교육':14523500,'기타':100000},
- '2026-06':{'공인교육':8850000,'필름에뮬':2800000,'인증서 발급':100000,'기타':1150000},
-};
+const REV_DEF=['사업 매출','개인 매출'];
+const DEF={annualRate:0, planMonthly:0, entries:[], debts:CAT_DEF, revCats:REV_DEF, syncToken:''};
+/* 과거 하드코딩 실적 데이터는 v7.1에서 제거함 (소스 공개로 인한 매출 노출 방지).
+   과거 월별 실적이 필요하면 동기화된 실제 기록(S.entries) 또는 인증된 백엔드 시트에서 가져올 것 — 클라이언트 소스에 절대 하드코딩하지 않는다. */
+const HIST_CAT={};
 const SCEN_START='2026-07';
 const PAL=['#14213D','#FCA311','#3D5480','#8E9099','#C2C4C3'];
 
@@ -237,7 +226,7 @@ function syncRows(){
       paidPct:base>0?((base-ch.balance)/base*100).toFixed(1):0,
       debts:(()=>{const g={};ch.units.forEach(u=>{g[u.cat]=(g[u.cat]||0)+u.left;});
         return Object.entries(g).map(([name,amount])=>({name,amount}));})(),
-      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v5.73'}
+      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.1'}
   };
 }
 async function pushSync(manual){
@@ -863,9 +852,11 @@ function render(){
         <p style="font-size:11.5px;color:var(--dim);line-height:1.6;margin:0 0 8px">
         4개 열로 정리된 표를 올려주세요:<br>
         <b>날짜 | 구분 | 항목 | 금액</b><br>
-        · 구분: 매출 / 상환 / 카드사용<br>
-        · 항목: 매출이면 분류명(공인교육 등), 상환이면 부채명(현대카드 등)<br>
-        예) 2026-07-10 | 매출 | 필름에뮬 | 350000</p>
+        · 구분: 매출 / 상환 / 카드사용 / 부채설정<br>
+        · 항목: 매출이면 분류명(공인교육 등), 상환이면 부채명(현대카드 등), 부채설정이면 "유형&gt;세부항목" (예: 장기차입&gt;신한카드)<br>
+        · 부채설정은 날짜를 비워도 되며, 해당 세부 항목의 현재 잔액을 그 금액으로 덮어씁니다(누적 아님)<br>
+        예) 2026-07-10 | 매출 | 필름에뮬 | 350000<br>
+        예) | 부채설정 | 장기차입&gt;신한카드 | 6230000</p>
         <input type="file" accept=".csv,.xlsx,.xls" onchange="handleImportFile(this)"
           style="width:100%;font-size:13px;padding:10px;background:#F4F5F9;border:1px dashed var(--line)">
       </div>
@@ -902,8 +893,9 @@ function render(){
           return `
           <div style="border:1px solid var(--line);padding:10px;margin-bottom:10px">
             <div class="row2" style="margin-bottom:6px">
-              <input id="dn${i}" value="${esc(d.name)}" style="flex:1.3;background:#fff;border:1px solid var(--line);padding:10px;font-size:13.5px;font-weight:700;min-width:0;color:var(--ink)">
+              <input id="dn${i}" value="${esc(d.name)}" placeholder="부채 유형명" style="flex:1.3;background:#fff;border:1px solid var(--line);padding:10px;font-size:13.5px;font-weight:700;min-width:0;color:var(--ink)">
               <input id="da${i}" class="mono" inputmode="numeric" value="${fmt(d.amount)}" ${subs.length?'disabled style="flex:1;background:#F4F5F9;border:1px solid var(--line);padding:10px;font-size:13.5px;min-width:0;color:var(--faint)"':'style="flex:1;background:#fff;border:1px solid var(--line);padding:10px;font-size:13.5px;min-width:0;color:var(--ink)"'}>
+              <button class="link" style="flex:0 0 34px;color:var(--red)" title="이 유형 삭제" onclick="delCat(${i})">✕</button>
             </div>
             ${subs.map((s,j)=>`
             <div class="row2" style="margin:0 0 6px 14px">
@@ -911,7 +903,7 @@ function render(){
               <input id="sa${i}_${j}" class="mono" inputmode="numeric" value="${fmt(s.amount)}" style="flex:1;background:#fff;border:1px solid var(--line);padding:9px;font-size:13px;min-width:0;color:var(--ink)">
               <button class="link" style="flex:0 0 34px;color:var(--red)" onclick="delSub(${i},${j})">✕</button>
             </div>`).join('')}
-            <button class="link" style="font-size:12px;color:var(--accent);margin-left:8px" onclick="addSub(${i})">＋ 세부 항목 추가 (예: 현대카드)</button>
+            <button class="link" style="font-size:12px;color:var(--accent);margin-left:8px" onclick="addSub(${i})">＋ 세부 항목 추가 (예: ${d.name==='사업대출'?'국민은행':'현대카드'})</button>
             ${subs.length?'<div style="font-size:10.5px;color:var(--faint);margin:4px 0 0 14px">유형 합계는 세부 항목의 합으로 자동 계산됩니다.</div>':''}
             <div class="row2" style="margin-top:8px;align-items:center">
               <div style="flex:1.3;font-size:11.5px;color:var(--dim)">상환시작일 <span style="color:var(--faint)">(선택 · 완제 로드맵 반영)</span></div>
@@ -920,7 +912,8 @@ function render(){
             </div>
           </div>`;
         }).join('')}
-        <button class="btn" style="margin-top:2px;padding:13px" onclick="saveDebts()">부채 구성 저장</button>
+        <button class="link" style="font-size:12px;color:var(--accent)" onclick="addCat()">＋ 부채 유형 추가</button>
+        <button class="btn" style="margin-top:10px;padding:13px" onclick="saveDebts()">부채 구성 저장</button>
         <p style="font-size:11px;color:var(--faint);margin:10px 0 0;line-height:1.5">세부 항목이 있으면 RECORD에서 항목별로 선택 입력됩니다. 금리 높은 항목을 위로 두면 이자를 아끼는 순서가 됩니다.</p>
       </div>
       <div class="card full" style="margin-top:10px">
@@ -1036,8 +1029,8 @@ function render(){
   app.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
-        <h1 class="display">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v5.71</span></h1>
-        <div class="sub">데이터로 보는 제로 부채 — School of COLOR</div>
+        <h1 class="display">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.1</span></h1>
+        <div class="sub">숫자가 빚을 이긴다! by The CUViSM</div>
       </div>
       <div style="text-align:right">
         <button class="link" onclick="go('settings')">설정</button>
@@ -1150,7 +1143,7 @@ function render(){
 
     <p style="font-size:10.5px;color:var(--faint);text-align:center;line-height:1.7;margin:22px 0 6px">
       시작 부채 ₩ ${fmt(base)} · 이자 연 ${(S.annualRate*100).toFixed(0)}% 가정 · 매주 3단계 입력이면 충분합니다<br>
-      ZERO Depth v5.73 · © School of COLOR</p>`;
+      ZERO Depth v7.1 · © School of COLOR</p>`;
 }
 
 /* ═══════ 이벤트 ═══════ */
@@ -1257,11 +1250,17 @@ function parseTable(rows){
     const c=r.map(x=>String(x==null?'':x).trim());
     if(idx===0&&(c[0]==='날짜'||c[1]==='구분'))return;
     if(!c.join(''))return;
-    const date=normDate(c[0]); const amt=pnum(c[3]||c[2]);
+    const k=c[1]||'';
+    const kind=k.indexOf('상환')>=0?'repay':(k.indexOf('카드사용')>=0||k==='카드')?'card':(k.indexOf('부채설정')>=0||k.indexOf('부채유형')>=0)?'debtset':'rev';
+    const amt=pnum(c[3]||c[2]);
+    if(kind==='debtset'){
+      if(!c[2]){errs.push((idx+1)+'행: 부채설정 항목명 누락');return;}
+      out.push({date:c[0]||'',kind,item:c[2],amt});
+      return;
+    }
+    const date=normDate(c[0]);
     if(!date){errs.push((idx+1)+'행: 날짜를 읽지 못함 ('+c[0]+')');return;}
     if(!amt)return;
-    const k=c[1]||'';
-    const kind=k.indexOf('상환')>=0?'repay':(k.indexOf('카드사용')>=0||k==='카드')?'card':'rev';
     out.push({date,kind,item:c[2]||'',amt});
   });
   return {out,errs};
@@ -1315,11 +1314,31 @@ function handleImportFile(input){
     document.body.appendChild(sc);
   }
 }
+function applyDebtSet(rows){
+  rows.forEach(r=>{
+    const parts=r.item.split('>').map(s=>s.trim());
+    const catName=parts[0], subName=parts[1]||null;
+    let cat=S.debts.find(d=>d.name===catName);
+    if(!cat){ cat={name:catName,amount:0,subs:[]}; S.debts.push(cat); }
+    if(subName){
+      cat.subs=cat.subs||[];
+      let sub=cat.subs.find(s=>s.name===subName);
+      if(!sub){ sub={name:subName,amount:0}; cat.subs.push(sub); }
+      sub.amount=r.amt;
+      cat.amount=cat.subs.reduce((x,s)=>x+s.amount,0);
+    } else {
+      if(!cat.subs||!cat.subs.length) cat.amount=r.amt;
+    }
+  });
+}
 function commitImport(){
   if(!Array.isArray(importRows)||!importRows.length)return;
+  const debtRows=importRows.filter(r=>r.kind==='debtset');
+  const txRows=importRows.filter(r=>r.kind!=='debtset');
+  if(debtRows.length) applyDebtSet(debtRows);
   const us=units();
   const byDate={};
-  importRows.forEach(r=>{
+  txRows.forEach(r=>{
     const d=byDate[r.date]=byDate[r.date]||{revBy:{},repayBy:{},cardUse:0};
     if(r.kind==='rev'){
       const cat=(S.revCats||[]).indexOf(r.item)>=0?r.item:((S.revCats||[]).indexOf('기타')>=0&&!r.item?'기타':(r.item||'기타'));
@@ -1340,7 +1359,7 @@ function commitImport(){
   });
   S.entries.sort((a,b)=>a.date<b.date?-1:1);
   persist();
-  alert('✅ '+importRows.length+'건 → '+dates.length+'개 날짜 기록으로 저장했습니다.');
+  alert('✅ '+importRows.length+'건 → '+dates.length+'개 날짜 기록'+(debtRows.length?' + 부채구성 '+debtRows.length+'건 반영':'')+' 완료했습니다.');
   importRows=null; importErr=''; go('home');
 }
 function setSyncUrl(){S.syncUrl=document.getElementById('set5').value.trim();S.syncToken=document.getElementById('set6').value.trim();persist();render();}
@@ -1360,6 +1379,8 @@ function saveDebts(){readDebtsInputs();persist();render();}
 function addSub(i){readDebtsInputs();S.debts[i].subs=S.debts[i].subs||[];S.debts[i].subs.push({name:'',amount:0});render();}
 function delSub(i,j){readDebtsInputs();S.debts[i].subs.splice(j,1);
   if(!S.debts[i].subs.length)S.debts[i].amount=0;persist();render();}
+function addCat(){readDebtsInputs();S.debts.push({name:'',amount:0,subs:[{name:'',amount:0}]});render();}
+function delCat(i){readDebtsInputs();S.debts.splice(i,1);persist();render();}
 function readRevInputs(){
   S.revCats=(S.revCats||[]).map((c,i)=>(document.getElementById('rc'+i)||{value:c}).value).filter(c=>c);
 }
