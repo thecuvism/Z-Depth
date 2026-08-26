@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ZERO Depth v7.1</title>
+<title>ZERO Depth v7.2</title>
 <style>
   :root{
     /* 레퍼런스 팔레트: Black / Prussian Blue #14213D / Orange #FCA311 / Alabaster #E5E5E5 / Brick Rust #C2C4C3 / White */
@@ -226,7 +226,7 @@ function syncRows(){
       paidPct:base>0?((base-ch.balance)/base*100).toFixed(1):0,
       debts:(()=>{const g={};ch.units.forEach(u=>{g[u.cat]=(g[u.cat]||0)+u.left;});
         return Object.entries(g).map(([name,amount])=>({name,amount}));})(),
-      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.1'}
+      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.2'}
   };
 }
 async function pushSync(manual){
@@ -531,6 +531,34 @@ function catBars(cats){
     }
     return html;
   }).join('');
+}
+/* 주간 잔액 추이 — 월 초순/중순/하순 색상으로 시간 단계를 즉시 파악 */
+function weeklyTrendSVG(ch){
+  const wk=ch.rows.filter(r=>r.type==='week'||r.type==='adjust');
+  if(wk.length<2) return '<p style="font-size:12px;color:var(--dim);margin-top:8px">2주 이상 기록되면 추이 그래프가 표시됩니다.</p>';
+  const pts=wk.map(r=>({date:r.date,bal:Math.max(0,r.balanceAfter)}));
+  const W=400,H=132,padL=42,padR=8,padT=12,padB=26;
+  const maxBal=Math.max(...pts.map(p=>p.bal),1);
+  const n=pts.length;
+  const X=i=>padL+(W-padL-padR)*(n===1?0:i/(n-1));
+  const Y=v=>padT+(H-padT-padB)*(1-v/maxBal);
+  const third=d=>{const day=new Date(d).getDate();return day<=10?0:day<=20?1:2;};
+  const TC=['#3D5480','#FCA311','#C2C4C3'];
+  const TL=['초순(1~10일)','중순(11~20일)','하순(21일~)'];
+  const path=pts.map((p,i)=>(i===0?'M':'L')+X(i).toFixed(1)+' '+Y(p.bal).toFixed(1)).join(' ');
+  const dots=pts.map((p,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(p.bal).toFixed(1)+'" r="3.2" fill="'+TC[third(p.date)]+'" stroke="#fff" stroke-width="1"/>').join('');
+  const first=pts[0].bal, last=pts[pts.length-1].bal;
+  const trendTxt=last<first?'감소 중':last>first?'증가 중':'변동 없음';
+  const trendColor=last<first?'var(--blue)':last>first?'var(--red)':'var(--dim)';
+  const grid='<line x1="'+padL+'" y1="'+Y(0).toFixed(1)+'" x2="'+(W-padR)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--line)"/>'
+    +'<text x="'+(padL-6)+'" y="'+(Y(0)+3).toFixed(1)+'" font-size="9" fill="var(--faint)" text-anchor="end">0</text>'
+    +'<text x="'+(padL-6)+'" y="'+(Y(maxBal)+3).toFixed(1)+'" font-size="9" fill="var(--faint)" text-anchor="end">'+esc(fmtM(maxBal))+'</text>';
+  const legend='<g font-size="9.5" fill="var(--dim)">'
+    +TL.map((t,i)=>'<circle cx="'+(padL+i*118)+'" cy="'+(H-6)+'" r="3.2" fill="'+TC[i]+'"/><text x="'+(padL+i*118+7)+'" y="'+(H-3)+'">'+t+'</text>').join('')
+    +'</g>';
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="주간 잔액 추이">'
+    +grid+'<path d="'+path+'" fill="none" stroke="'+trendColor+'" stroke-width="2"/>'+dots+legend+'</svg>'
+    +'<div class="cap" style="text-align:left;margin-top:2px">최근 8주 페이스: <b style="color:'+trendColor+'">'+trendTxt+'</b> · 점 색상 = 기록일이 월중 어느 시기인지</div>';
 }
 function ganttSVG(sim){
   const W=400,rowH=30,top=20,left=76;
@@ -1029,7 +1057,7 @@ function render(){
   app.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
-        <h1 class="display">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.1</span></h1>
+        <h1 class="display">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.2</span></h1>
         <div class="sub">숫자가 빚을 이긴다! by The CUViSM</div>
       </div>
       <div style="text-align:right">
@@ -1079,6 +1107,11 @@ function render(){
         <div class="tt">부채 구성비</div>
         ${donutSVG(sim.cats)}
         <div class="cap">현재 잔액 기준</div>
+      </div>
+
+      <div class="card full">
+        <div class="tt">주간 잔액 추이</div>
+        ${weeklyTrendSVG(ch)}
       </div>
 
       <div class="card full">
@@ -1143,7 +1176,7 @@ function render(){
 
     <p style="font-size:10.5px;color:var(--faint);text-align:center;line-height:1.7;margin:22px 0 6px">
       시작 부채 ₩ ${fmt(base)} · 이자 연 ${(S.annualRate*100).toFixed(0)}% 가정 · 매주 3단계 입력이면 충분합니다<br>
-      ZERO Depth v7.1 · © School of COLOR</p>`;
+      ZERO Depth v7.2 · © School of COLOR</p>`;
 }
 
 /* ═══════ 이벤트 ═══════ */
