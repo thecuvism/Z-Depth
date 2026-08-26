@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ZERO Depth v7.31</title>
+<title>ZERO Depth v7.32</title>
 <style>
   :root{
     /* 레퍼런스 팔레트: Black / Prussian Blue #14213D / Orange #FCA311 / Alabaster #E5E5E5 / Brick Rust #C2C4C3 / White */
@@ -226,7 +226,7 @@ function syncRows(){
       paidPct:base>0?((base-ch.balance)/base*100).toFixed(1):0,
       debts:(()=>{const g={};ch.units.forEach(u=>{g[u.cat]=(g[u.cat]||0)+u.left;});
         return Object.entries(g).map(([name,amount])=>({name,amount}));})(),
-      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.31'}
+      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.32'}
   };
 }
 async function pushSync(manual){
@@ -532,46 +532,46 @@ function catBars(cats){
     return html;
   }).join('');
 }
-/* 월별 매출(수익) vs 매입(지출) 흐름 — 두 선의 위치·간격으로 수입 대비 지출 상태를 즉시 파악 */
-function monthlyFlowSVG(ch){
-  const wk=ch.rows.filter(r=>r.type==='week');
-  if(wk.length<2) return '<p style="font-size:12px;color:var(--dim);margin-top:8px">2건 이상 기록되면 흐름 그래프가 표시됩니다.</p>';
-  const monthly={};
-  wk.forEach(r=>{
-    const ym=ymOf(r.date);
-    monthly[ym]=monthly[ym]||{rev:0,exp:0};
-    monthly[ym].rev+=(r.revenue||0);
-    monthly[ym].exp+=(r.repay||0)+(r.cardUse||0);
-  });
-  const months=Object.keys(monthly).sort();
-  if(months.length<2) return '<p style="font-size:12px;color:var(--dim);margin-top:8px">2개월 이상 기록되면 흐름 그래프가 표시됩니다.</p>';
-  const W=400,H=140,padL=42,padR=8,padT=14,padB=32;
-  const maxV=Math.max(...months.map(m=>Math.max(monthly[m].rev,monthly[m].exp)),1);
-  const n=months.length;
-  const X=i=>padL+(W-padL-padR)*(n===1?0:i/(n-1));
+/* 이번 달(1일~말일) 매출(수익) vs 매입(지출) 누적 추이 — 두 선의 간격으로 이번 달 수지 흐름을 즉시 파악 */
+function currentMonthFlowSVG(ch){
+  const ym=nowYM();
+  const wk=ch.rows.filter(r=>r.type==='week'&&ymOf(r.date)===ym).sort((a,b)=>a.date<b.date?-1:1);
+  if(!wk.length) return '<p style="font-size:12px;color:var(--dim);margin-top:8px">'+esc(ymLab(ym))+'에는 아직 기록이 없습니다.</p>';
+  const[y,mo]=ym.split('-').map(Number);
+  const daysInMonth=new Date(y,mo,0).getDate();
+  const todayDay=Math.min(new Date().getDate(),daysInMonth);
+  let cumRev=0,cumExp=0;
+  const pts=wk.map(r=>{cumRev+=(r.revenue||0);cumExp+=(r.repay||0)+(r.cardUse||0);
+    return {day:new Date(r.date).getDate(),rev:cumRev,exp:cumExp};});
+  const seriesRev=[{day:1,v:0},...pts.map(p=>({day:p.day,v:p.rev}))];
+  const seriesExp=[{day:1,v:0},...pts.map(p=>({day:p.day,v:p.exp}))];
+  const W=400,H=150,padL=42,padR=8,padT=26,padB=34;
+  const maxV=Math.max(cumRev,cumExp,1);
+  const X=d=>padL+(W-padL-padR)*((Math.min(d,daysInMonth)-1)/((daysInMonth-1)||1));
   const Y=v=>padT+(H-padT-padB)*(1-v/maxV);
-  const revPath=months.map((m,i)=>(i===0?'M':'L')+X(i).toFixed(1)+' '+Y(monthly[m].rev).toFixed(1)).join(' ');
-  const expPath=months.map((m,i)=>(i===0?'M':'L')+X(i).toFixed(1)+' '+Y(monthly[m].exp).toFixed(1)).join(' ');
-  const revDots=months.map((m,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(monthly[m].rev).toFixed(1)+'" r="3" fill="var(--blue)" stroke="#fff" stroke-width="1"/>').join('');
-  const expDots=months.map((m,i)=>'<circle cx="'+X(i).toFixed(1)+'" cy="'+Y(monthly[m].exp).toFixed(1)+'" r="3" fill="var(--accent)" stroke="#fff" stroke-width="1"/>').join('');
-  const xLabels=months.map((m,i)=>'<text x="'+X(i).toFixed(1)+'" y="'+(H-18)+'" font-size="9" fill="var(--faint)" text-anchor="middle">'+esc(ymLab(m))+'</text>').join('');
+  const pathOf=series=>series.map((p,i)=>(i===0?'M':'L')+X(p.day).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
+  const dotsOf=(series,color)=>series.slice(1).map(p=>'<circle cx="'+X(p.day).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="3" fill="'+color+'" stroke="#fff" stroke-width="1"/>').join('');
+  const dayMarks=[1,10,20,daysInMonth];
+  const xLabels=dayMarks.map(d=>'<text x="'+X(d).toFixed(1)+'" y="'+(H-20)+'" font-size="9" fill="var(--faint)" text-anchor="middle">'+d+'일</text>').join('');
+  const todayX=X(todayDay);
+  const todayMark='<line x1="'+todayX.toFixed(1)+'" y1="'+(padT-8).toFixed(1)+'" x2="'+todayX.toFixed(1)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--dim)" stroke-width="1.2" stroke-dasharray="3 3"/>'
+    +'<text x="'+todayX.toFixed(1)+'" y="'+(padT-11)+'" font-size="9" fill="var(--dim)" font-weight="800" text-anchor="middle">TODAY</text>';
   const grid='<line x1="'+padL+'" y1="'+Y(0).toFixed(1)+'" x2="'+(W-padR)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--line)"/>'
     +'<text x="'+(padL-6)+'" y="'+(Y(0)+3).toFixed(1)+'" font-size="9" fill="var(--faint)" text-anchor="end">0</text>'
     +'<text x="'+(padL-6)+'" y="'+(Y(maxV)+3).toFixed(1)+'" font-size="9" fill="var(--faint)" text-anchor="end">'+esc(fmtM(maxV))+'</text>';
-  const lastM=months[months.length-1];
-  const gap=monthly[lastM].rev-monthly[lastM].exp;
+  const gap=cumRev-cumExp;
   const gapTxt=gap>=0?'수입이 지출보다 '+fmtM(gap)+' 많음':'지출이 수입보다 '+fmtM(Math.abs(gap))+' 많음';
   const gapColor=gap>=0?'var(--blue)':'var(--red)';
   const legend='<g font-size="9.5" fill="var(--dim)">'
-    +'<circle cx="'+padL+'" cy="'+(H-6)+'" r="3.2" fill="var(--blue)"/><text x="'+(padL+7)+'" y="'+(H-3)+'">매출(수익)</text>'
-    +'<circle cx="'+(padL+72)+'" cy="'+(H-6)+'" r="3.2" fill="var(--accent)"/><text x="'+(padL+79)+'" y="'+(H-3)+'">매입(지출)</text>'
+    +'<circle cx="'+padL+'" cy="'+(H-6)+'" r="3.2" fill="var(--blue)"/><text x="'+(padL+7)+'" y="'+(H-3)+'">매출(수익) 누적</text>'
+    +'<circle cx="'+(padL+92)+'" cy="'+(H-6)+'" r="3.2" fill="var(--accent)"/><text x="'+(padL+99)+'" y="'+(H-3)+'">매입(지출) 누적</text>'
     +'</g>';
-  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="월별 매출 매입 흐름">'
-    +grid+xLabels
-    +'<path d="'+revPath+'" fill="none" stroke="var(--blue)" stroke-width="2"/>'+revDots
-    +'<path d="'+expPath+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+expDots
+  return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="이번 달 매출 매입 추이">'
+    +grid+xLabels+todayMark
+    +'<path d="'+pathOf(seriesRev)+'" fill="none" stroke="var(--blue)" stroke-width="2"/>'+dotsOf(seriesRev,'var(--blue)')
+    +'<path d="'+pathOf(seriesExp)+'" fill="none" stroke="var(--accent)" stroke-width="2"/>'+dotsOf(seriesExp,'var(--accent)')
     +legend+'</svg>'
-    +'<div class="cap" style="text-align:left;margin-top:2px">이번 달: <b style="color:'+gapColor+'">'+gapTxt+'</b></div>';
+    +'<div class="cap" style="text-align:left;margin-top:2px">'+esc(ymLab(ym))+' 누적: <b style="color:'+gapColor+'">'+gapTxt+'</b></div>';
 }
 async function hardRefresh(){
   /* iOS 홈 화면 웹앱(standalone)은 location 이동만으로는 캐시 우회가 안 될 수 있음 —
@@ -1083,7 +1083,7 @@ function render(){
   app.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
-        <h1 class="display" onclick="hardRefresh()" style="cursor:pointer" title="탭하여 새로고침">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.31</span></h1>
+        <h1 class="display" onclick="hardRefresh()" style="cursor:pointer" title="탭하여 새로고침">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.32</span></h1>
         <div class="sub">숫자가 빚을 이긴다! by The CUViSM</div>
       </div>
       <div style="text-align:right">
@@ -1136,8 +1136,8 @@ function render(){
       </div>
 
       <div class="card full">
-        <div class="tt">월별 매출 vs 매입</div>
-        ${monthlyFlowSVG(ch)}
+        <div class="tt">${esc(ymLab(nowYM()))} 매출 vs 매입</div>
+        ${currentMonthFlowSVG(ch)}
       </div>
 
       <div class="card full">
@@ -1202,7 +1202,7 @@ function render(){
 
     <p style="font-size:10.5px;color:var(--faint);text-align:center;line-height:1.7;margin:22px 0 6px">
       시작 부채 ₩ ${fmt(base)} · 이자 연 ${(S.annualRate*100).toFixed(0)}% 가정 · 매주 3단계 입력이면 충분합니다<br>
-      ZERO Depth v7.31 · © School of COLOR</p>`;
+      ZERO Depth v7.32 · © School of COLOR</p>`;
 }
 
 /* ═══════ 이벤트 ═══════ */
