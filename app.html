@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ZERO Depth v7.51</title>
+<title>ZERO Depth v7.52</title>
 <style>
   :root{
     /* 레퍼런스 팔레트: Black / Prussian Blue #14213D / Orange #FCA311 / Alabaster #E5E5E5 / Brick Rust #C2C4C3 / White */
@@ -22,7 +22,7 @@
   .full{grid-column:1/-1;}
   .card{background:var(--card); border-top:2px solid var(--black); padding:16px 15px 13px; position:relative;}
   .card .tt{font-size:12.5px; font-weight:700; letter-spacing:.02em; margin-bottom:10px;}
-  .card .cap{font-size:9.5px; color:var(--faint); text-align:right; margin-top:10px;}
+  .card .cap{font-size:10px; color:var(--faint); text-align:right; margin-top:10px;}
   .bignum{font-size:40px; font-weight:800; letter-spacing:-0.02em; color:var(--blue); line-height:1.05;}
   .bignum.ink{color:var(--ink);}
   .bignum small{font-size:20px; font-weight:800;}
@@ -229,7 +229,7 @@ function syncRows(){
       paidPct:base>0?((base-ch.balance)/base*100).toFixed(1):0,
       debts:(()=>{const g={};ch.units.forEach(u=>{g[u.cat]=(g[u.cat]||0)+u.left;});
         return Object.entries(g).map(([name,amount])=>({name,amount}));})(),
-      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.51'}
+      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.52'}
   };
 }
 async function pushSync(manual){
@@ -555,17 +555,17 @@ function currentMonthFlowSVG(ch){
   const pathOf=series=>series.map((p,i)=>(i===0?'M':'L')+X(p.day).toFixed(1)+' '+Y(p.v).toFixed(1)).join(' ');
   const dotsOf=(series,color)=>series.slice(1).map(p=>'<circle cx="'+X(p.day).toFixed(1)+'" cy="'+Y(p.v).toFixed(1)+'" r="3" fill="'+color+'" stroke="#fff" stroke-width="1"/>').join('');
   const dayMarks=[1,10,20,daysInMonth];
-  const xLabels=dayMarks.map(d=>'<text x="'+X(d).toFixed(1)+'" y="'+(H-20)+'" font-size="9" fill="var(--faint)" text-anchor="middle">'+d+'일</text>').join('');
+  const xLabels=dayMarks.map(d=>'<text x="'+X(d).toFixed(1)+'" y="'+(H-20)+'" font-size="10" fill="var(--faint)" text-anchor="middle">'+d+'일</text>').join('');
   const todayX=X(todayDay);
   const todayMark='<line x1="'+todayX.toFixed(1)+'" y1="'+(padT-8).toFixed(1)+'" x2="'+todayX.toFixed(1)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--dim)" stroke-width="1.2" stroke-dasharray="3 3"/>'
-    +'<text x="'+todayX.toFixed(1)+'" y="'+(padT-11)+'" font-size="9" fill="var(--dim)" font-weight="800" text-anchor="middle">TODAY</text>';
+    +'<text x="'+todayX.toFixed(1)+'" y="'+(padT-11)+'" font-size="10" fill="var(--dim)" font-weight="800" text-anchor="middle">TODAY</text>';
   const grid='<line x1="'+padL+'" y1="'+Y(0).toFixed(1)+'" x2="'+(W-padR)+'" y2="'+Y(0).toFixed(1)+'" stroke="var(--line)"/>'
-    +'<text x="'+(padL-6)+'" y="'+(Y(0)+3).toFixed(1)+'" font-size="9" fill="var(--faint)" text-anchor="end">0</text>'
-    +'<text x="'+(padL-6)+'" y="'+(Y(maxV)+3).toFixed(1)+'" font-size="9" fill="var(--faint)" text-anchor="end">'+esc(fmtM(maxV))+'</text>';
+    +'<text x="'+(padL-6)+'" y="'+(Y(0)+3).toFixed(1)+'" font-size="10" fill="var(--faint)" text-anchor="end">0</text>'
+    +'<text x="'+(padL-6)+'" y="'+(Y(maxV)+3).toFixed(1)+'" font-size="10" fill="var(--faint)" text-anchor="end">'+esc(fmtM(maxV))+'</text>';
   const gap=cumRev-cumExp;
   const gapTxt=gap>=0?'수입이 지출보다 '+fmtM(gap)+' 많음':'지출이 수입보다 '+fmtM(Math.abs(gap))+' 많음';
   const gapColor=gap>=0?'var(--blue)':'var(--red)';
-  const legend='<g font-size="9.5" fill="var(--dim)">'
+  const legend='<g font-size="10" fill="var(--dim)">'
     +'<circle cx="'+padL+'" cy="'+(H-6)+'" r="3.2" fill="var(--blue)"/><text x="'+(padL+7)+'" y="'+(H-3)+'">매출(수익) 누적</text>'
     +'<circle cx="'+(padL+92)+'" cy="'+(H-6)+'" r="3.2" fill="var(--accent)"/><text x="'+(padL+99)+'" y="'+(H-3)+'">매입(지출) 누적</text>'
     +'</g>';
@@ -594,7 +594,7 @@ function ganttSVG(sim){
   let g='';
   for(let k=0;k<=span;k+=3){
     g+='<line x1="'+X(k)+'" y1="'+top+'" x2="'+X(k)+'" y2="'+(H-20)+'" stroke="var(--line)"/>'
-      +'<text x="'+X(k)+'" y="'+(H-6)+'" font-size="9" fill="var(--faint)" text-anchor="middle">'+esc(ymLab(ymAdd(SCEN_START,k)))+'</text>';
+      +'<text x="'+X(k)+'" y="'+(H-6)+'" font-size="10" fill="var(--faint)" text-anchor="middle">'+esc(ymLab(ymAdd(SCEN_START,k)))+'</text>';
   }
   sim.cats.forEach((c,i)=>{
     const y=top+i*rowH+5;
@@ -610,12 +610,12 @@ function ganttSVG(sim){
     }else{
       g+='<rect x="'+X(s)+'" y="'+y+'" width="'+bw+'" height="16" fill="none" stroke="'+(active?'var(--black)':'var(--line)')+'" stroke-width="1.4"/>';
       if(frac>0) g+='<rect x="'+X(s)+'" y="'+y+'" width="'+Math.max(4,bw*Math.min(1,frac))+'" height="16" fill="var(--black)"/>';
-      if(c.end) g+='<text x="'+Math.min(W-4,X(e)+4)+'" y="'+(y+12)+'" font-size="9" fill="var(--faint)">'+esc(ymLab(c.end))+'</text>';
+      if(c.end) g+='<text x="'+Math.min(W-4,X(e)+4)+'" y="'+(y+12)+'" font-size="10" fill="var(--faint)">'+esc(ymLab(c.end))+'</text>';
     }
   });
   const tx=X(Math.min(span,idx(sim.today)+0.5));
   g+='<line x1="'+tx+'" y1="'+(top-6)+'" x2="'+tx+'" y2="'+(H-20)+'" stroke="var(--blue)" stroke-width="1.6" stroke-dasharray="3 3"/>'
-    +'<text x="'+tx+'" y="'+(top-9)+'" font-size="9" fill="var(--blue)" font-weight="800" text-anchor="middle">TODAY</text>';
+    +'<text x="'+tx+'" y="'+(top-9)+'" font-size="10" fill="var(--blue)" font-weight="800" text-anchor="middle">TODAY</text>';
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="완제 로드맵">'+g+'</svg>';
 }
 const PAL_R=['#14213D','#FCA311','#3D5480','#20B2AA','#C2C4C3','#E5749B'];
@@ -665,8 +665,8 @@ function revenueSVG(ch){
       cy-=h;
       g+='<rect x="'+x(i)+'" y="'+cy+'" width="'+bw+'" height="'+h+'" fill="'+sg.color+'"/>';
     });
-    g+='<text x="'+(x(i)+bw/2)+'" y="'+(cy-4)+'" font-size="8.5" font-weight="700" fill="var(--dim)" text-anchor="middle">'+esc(fmtM(totals[i]))+'</text>'
-      +'<text x="'+(x(i)+bw/2)+'" y="'+(H-6)+'" font-size="9" fill="var(--faint)" text-anchor="middle">'+esc(m.slice(5))+'월</text>';
+    g+='<text x="'+(x(i)+bw/2)+'" y="'+(cy-4)+'" font-size="10" font-weight="700" fill="var(--dim)" text-anchor="middle">'+esc(fmtM(totals[i]))+'</text>'
+      +'<text x="'+(x(i)+bw/2)+'" y="'+(H-6)+'" font-size="10" fill="var(--faint)" text-anchor="middle">'+esc(m.slice(5))+'월</text>';
   });
   /* 사용 중인 세그먼트만 범례 표시 */
   const used=segs.filter(sg=>months.some(m=>(monthly[m][sg.key]||0)>0));
@@ -684,11 +684,11 @@ function balanceSVG(ch){
   const y=v=>10+(H-30)*(1-v/max);
   let path='M '+pts.map((p,i)=>x(i)+' '+y(p.v)).join(' L ');
   const dots=pts.map((p,i)=>'<circle cx="'+x(i)+'" cy="'+y(p.v)+'" r="3.2" fill="var(--blue)"/>').join('');
-  const labels=pts.map((p,i)=>(pts.length>8&&i%2===1)?'':'<text x="'+x(i)+'" y="'+(H-4)+'" font-size="9" fill="var(--faint)" text-anchor="middle">'+esc(p.l)+'</text>').join('');
+  const labels=pts.map((p,i)=>(pts.length>8&&i%2===1)?'':'<text x="'+x(i)+'" y="'+(H-4)+'" font-size="10" fill="var(--faint)" text-anchor="middle">'+esc(p.l)+'</text>').join('');
   return '<svg viewBox="0 0 '+W+' '+H+'" width="100%" role="img" aria-label="잔액 추이">'+
     '<line x1="'+P+'" y1="'+y(0)+'" x2="'+(W-10)+'" y2="'+y(0)+'" stroke="var(--blue)" stroke-dasharray="4 4" opacity=".45"/>'+
-    '<text x="4" y="'+(y(max)+4)+'" font-size="9" fill="var(--faint)">'+esc(fmtM(max))+'</text>'+
-    '<text x="4" y="'+(y(0)+4)+'" font-size="9" fill="var(--faint)">0</text>'+
+    '<text x="4" y="'+(y(max)+4)+'" font-size="10" fill="var(--faint)">'+esc(fmtM(max))+'</text>'+
+    '<text x="4" y="'+(y(0)+4)+'" font-size="10" fill="var(--faint)">0</text>'+
     '<path d="'+path+'" fill="none" stroke="var(--blue)" stroke-width="2.4"/>'+dots+labels+'</svg>';
 }
 
@@ -1079,12 +1079,12 @@ function render(){
   app.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
-        <h1 class="display">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.51</span></h1>
+        <h1 class="display">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.52</span></h1>
         <div class="sub">숫자가 빚을 이긴다! by The CUViSM</div>
       </div>
       <div style="text-align:right">
         <button class="link" onclick="go('settings')">설정</button>
-        <div style="font-size:9.5px;color:${S.syncUrl?(syncState==='blocked'?'var(--red)':'var(--blue)'):'var(--faint)'};margin-top:2px;line-height:1.5">
+        <div style="font-size:10px;color:${S.syncUrl?(syncState==='blocked'?'var(--red)':'var(--blue)'):'var(--faint)'};margin-top:2px;line-height:1.5">
           ${S.syncUrl
             ?(syncState==='sending'?'⇡ 시트 전송 중…'
               :syncState==='blocked'?'⚠ 전송 실패 — 재시도 대기'
@@ -1132,11 +1132,6 @@ function render(){
       </div>
 
       <div class="card full">
-        <div class="tt">${esc(ymLab(nowYM()))} 매출 vs 매입</div>
-        ${currentMonthFlowSVG(ch)}
-      </div>
-
-      <div class="card full">
         <div style="display:flex;justify-content:space-between;align-items:baseline">
           <div class="tt">완제 로드맵</div>
           ${S.debts.some(d=>d.startYM)?'<div style="font-size:10px;color:var(--faint);margin-top:2px">설정한 상환시작일이 반영된 예측</div>':''}
@@ -1148,14 +1143,20 @@ function render(){
       </div>
 
       <div class="card full">
-        <div class="tt">단계별 현황 — 완료와 남은 순서</div>
-        ${checklist}
+        <div class="tt">매출 vs 매입 - ${esc(ymLab(nowYM()))}</div>
+        ${currentMonthFlowSVG(ch)}
       </div>
-    </div>
 
-    <button class="btn" style="margin-top:14px;font-size:16px" onclick="startWizard()">RECORD — 이번 주 기록하기</button>
+      <div class="card full">
+        <div style="display:flex;justify-content:space-between;align-items:baseline">
+          <div class="tt">월별 매출 현황</div>
+          <div style="font-size:10px;color:var(--faint)">분류별 층 = 매출 구성</div>
+        </div>
+        ${rev.svg}
+        ${!rev.hasLive?'<p style="font-size:11px;color:var(--faint);margin:8px 0 0">주간 기록(STEP 1)에서 분류별 매출을 입력하면 이번 달 막대가 층으로 쌓입니다.</p>':''}
+        <div class="cap">상반기 = PDF 원본을 상품별 분류 집계 · 이후 = 주간/파일 입력</div>
+      </div>
 
-    <div class="grid" style="margin-top:14px">
       <div class="card">
         <div class="tt">이번 주 순감소</div>
         <div class="bignum mono" style="font-size:24px;color:${lastWeek&&lastWeek.net<0?'var(--red)':'var(--blue)'}">
@@ -1168,23 +1169,15 @@ function render(){
         <div class="cap">직전 주 제외</div>
       </div>
 
-      <div class="card full">
-        <div style="display:flex;justify-content:space-between;align-items:baseline">
-          <div class="tt">월별 매출 현황</div>
-          <div style="font-size:9.5px;color:var(--faint)">분류별 층 = 매출 구성</div>
-        </div>
-        ${rev.svg}
-        ${!rev.hasLive?'<p style="font-size:11px;color:var(--faint);margin:8px 0 0">주간 기록(STEP 1)에서 분류별 매출을 입력하면 이번 달 막대가 층으로 쌓입니다.</p>':''}
-        <div class="cap">상반기 = PDF 원본을 상품별 분류 집계 · 이후 = 주간/파일 입력</div>
-      </div>
-
       ${ch.rows.length?'<div class="card full"><div class="tt">잔액 추이</div>'+balanceSVG(ch)+'<div class="cap">기록 시점별 총잔액</div></div>':''}
     </div>
+
+    <button class="btn" style="margin-top:14px;font-size:16px" onclick="startWizard()">RECORD — 이번 주 기록하기</button>
 
     <div style="margin-top:16px">
       <div style="display:flex;justify-content:space-between;align-items:baseline;margin:0 2px 8px">
         <div class="eyebrow">RECORDS</div>
-        <span style="font-size:9.5px;color:var(--faint)">✎ 수정 · ✕ 삭제</span>
+        <span style="font-size:10px;color:var(--faint)">✎ 수정 · ✕ 삭제</span>
       </div>
       ${ch.rows.length?rows:'<div class="card full" style="text-align:center;color:var(--faint);font-size:13px;padding:26px">아직 기록이 없습니다. RECORD 버튼으로 첫 주를 시작해 보세요.</div>'}
       ${allRows.length>3?`<button class="btn ghost" style="padding:11px;font-size:12.5px" onclick="toggleRecords()">${showAllRecords?'접기 — 최근 3건만 보기':'기록 더보기 ('+Math.min(allRows.length,10)+'건까지)'}</button>`:''}
@@ -1198,7 +1191,7 @@ function render(){
 
     <p style="font-size:10.5px;color:var(--faint);text-align:center;line-height:1.7;margin:22px 0 6px">
       시작 부채 ₩ ${fmt(base)} · 이자 연 ${(S.annualRate*100).toFixed(0)}% 가정 · 매주 3단계 입력이면 충분합니다<br>
-      ZERO Depth v7.51 · © School of COLOR</p>`;
+      ZERO Depth v7.52 · © School of COLOR</p>`;
 }
 
 /* ═══════ 이벤트 ═══════ */
