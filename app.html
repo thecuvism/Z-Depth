@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>ZERO Depth v7.34</title>
+<title>ZERO Depth v7.5</title>
 <style>
   :root{
     /* 레퍼런스 팔레트: Black / Prussian Blue #14213D / Orange #FCA311 / Alabaster #E5E5E5 / Brick Rust #C2C4C3 / White */
@@ -229,7 +229,7 @@ function syncRows(){
       paidPct:base>0?((base-ch.balance)/base*100).toFixed(1):0,
       debts:(()=>{const g={};ch.units.forEach(u=>{g[u.cat]=(g[u.cat]||0)+u.left;});
         return Object.entries(g).map(([name,amount])=>({name,amount}));})(),
-      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.34'}
+      units:ch.units.map(u=>({name:u.name,cat:u.cat,left:u.left})),app:'ZERO Depth v7.5'}
   };
 }
 async function pushSync(manual){
@@ -937,7 +937,7 @@ function render(){
         <span style="font-size:16px;font-weight:800">SETTINGS</span>
       </div>
       <div class="card full" style="margin-top:14px">
-        <div class="tt">부채 유형 · 세부 항목 (위 = 우선 상환)</div>
+        <div class="tt">부채 유형 · 세부 항목 (⠿ 드래그로 순서 변경 · 위 = 우선 상환)</div>
         ${S.debts.map((d,i)=>{
           const subs=d.subs||[];
           return `
@@ -947,12 +947,15 @@ function render(){
               <input id="da${i}" class="mono" inputmode="numeric" value="${fmt(d.amount)}" ${subs.length?'disabled style="flex:1;background:#F4F5F9;border:1px solid var(--line);padding:10px;font-size:13.5px;min-width:0;color:var(--faint)"':'style="flex:1;background:#fff;border:1px solid var(--line);padding:10px;font-size:13.5px;min-width:0;color:var(--ink)"'}>
               <button class="link" style="flex:0 0 34px;color:var(--red)" title="이 유형 삭제" onclick="delCat(${i})">✕</button>
             </div>
+            <div class="subs-list" data-cat="${i}">
             ${subs.map((s,j)=>`
-            <div class="row2" style="margin:0 0 6px 14px">
+            <div class="row2 subrow" data-idx="${j}" style="margin:0 0 6px 0;align-items:center">
+              <span class="drag-handle" style="flex:0 0 20px;color:var(--faint);font-size:15px;text-align:center;cursor:grab;touch-action:none;user-select:none">⠿</span>
               <input id="sn${i}_${j}" value="${esc(s.name)}" placeholder="세부 항목명" style="flex:1.3;background:#fff;border:1px solid var(--line);padding:9px;font-size:13px;min-width:0;color:var(--ink)">
               <input id="sa${i}_${j}" class="mono" inputmode="numeric" value="${fmt(s.amount)}" style="flex:1;background:#fff;border:1px solid var(--line);padding:9px;font-size:13px;min-width:0;color:var(--ink)">
               <button class="link" style="flex:0 0 34px;color:var(--red)" onclick="delSub(${i},${j})">✕</button>
             </div>`).join('')}
+            </div>
             <button class="link" style="font-size:12px;color:var(--accent);margin-left:8px" onclick="addSub(${i})">＋ 세부 항목 추가 (예: ${d.name==='사업대출'?'국민은행':'현대카드'})</button>
             ${subs.length?'<div style="font-size:10.5px;color:var(--faint);margin:4px 0 0 14px">유형 합계는 세부 항목의 합으로 자동 계산됩니다.</div>':''}
             <div class="row2" style="margin-top:8px;align-items:center">
@@ -1033,6 +1036,7 @@ function render(){
         <button class="btn ghost" style="padding:12px" onclick="loadHistory()">백업 시점 목록 보기</button>
         ${histBlock()}
       </div>`;
+    wireDragReorder();
     return;
   }
 
@@ -1079,7 +1083,7 @@ function render(){
   app.innerHTML=`
     <div style="display:flex;justify-content:space-between;align-items:flex-end">
       <div>
-        <h1 class="display">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.34</span></h1>
+        <h1 class="display">ZERO Depth <span style="font-size:15px;font-weight:800;color:var(--blue);vertical-align:super">v7.5</span></h1>
         <div class="sub">숫자가 빚을 이긴다! by The CUViSM</div>
       </div>
       <div style="text-align:right">
@@ -1198,7 +1202,7 @@ function render(){
 
     <p style="font-size:10.5px;color:var(--faint);text-align:center;line-height:1.7;margin:22px 0 6px">
       시작 부채 ₩ ${fmt(base)} · 이자 연 ${(S.annualRate*100).toFixed(0)}% 가정 · 매주 3단계 입력이면 충분합니다<br>
-      ZERO Depth v7.34 · © School of COLOR</p>`;
+      ZERO Depth v7.5 · © School of COLOR</p>`;
 }
 
 /* ═══════ 이벤트 ═══════ */
@@ -1436,6 +1440,60 @@ function delSub(i,j){readDebtsInputs();S.debts[i].subs.splice(j,1);
   if(!S.debts[i].subs.length)S.debts[i].amount=0;persist();render();}
 function addCat(){readDebtsInputs();S.debts.push({name:'',amount:0,subs:[{name:'',amount:0}]});render();}
 function delCat(i){readDebtsInputs();S.debts.splice(i,1);persist();render();}
+
+/* ⠿ 드래그 핸들로 세부 항목 순서 변경 — Pointer Events(마우스+터치 공용) */
+let dragState=null;
+function wireDragReorder(){
+  document.querySelectorAll('.subs-list .drag-handle').forEach(h=>{
+    h.onpointerdown=e=>startDrag(e);
+  });
+}
+function startDrag(e){
+  e.preventDefault();
+  const row=e.target.closest('.subrow');
+  const list=e.target.closest('.subs-list');
+  if(!row||!list) return;
+  try{ row.setPointerCapture(e.pointerId); }catch(err){}
+  row.classList.add('dragging');
+  row.style.opacity='0.55'; row.style.background='var(--card)';
+  dragState={list,row,pointerId:e.pointerId};
+  document.addEventListener('pointermove',onDragMove);
+  document.addEventListener('pointerup',onDragEnd);
+  document.addEventListener('pointercancel',onDragEnd);
+}
+function onDragMove(e){
+  if(!dragState) return;
+  const {list,row}=dragState;
+  const y=e.clientY;
+  const siblings=Array.from(list.querySelectorAll('.subrow')).filter(el=>el!==row);
+  let placed=false;
+  for(const sib of siblings){
+    const rect=sib.getBoundingClientRect();
+    if(y < rect.top+rect.height/2){
+      list.insertBefore(row,sib);
+      placed=true;
+      break;
+    }
+  }
+  if(!placed) list.appendChild(row);
+}
+function onDragEnd(e){
+  if(!dragState) return;
+  const {list,row}=dragState;
+  document.removeEventListener('pointermove',onDragMove);
+  document.removeEventListener('pointerup',onDragEnd);
+  document.removeEventListener('pointercancel',onDragEnd);
+  row.classList.remove('dragging');
+  row.style.opacity=''; row.style.background='';
+  const catIdx=parseInt(list.dataset.cat,10);
+  const domOrder=Array.from(list.querySelectorAll('.subrow')).map(r=>parseInt(r.dataset.idx,10));
+  readDebtsInputs();
+  const oldSubs=S.debts[catIdx].subs;
+  S.debts[catIdx].subs=domOrder.map(idx=>oldSubs[idx]);
+  persist();
+  dragState=null;
+  render();
+}
 function readRevInputs(){
   S.revCats=(S.revCats||[]).map((c,i)=>(document.getElementById('rc'+i)||{value:c}).value).filter(c=>c);
 }
